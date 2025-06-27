@@ -1,1 +1,233 @@
 
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マイコンプログラミング</title>
+  </head>
+
+  <body>
+    シリアルポート：<button id="connect">接続</button>
+    <br>
+    <button id="sample01">LED TEST</button>
+    <button id="sample02">SW TEST</button>
+    <br>
+    プログラムリスト
+    <br>
+    <textarea name="Prog" cols="80" rows="15" id="prog" style="overflow:scroll;"></textarea>
+    <br>
+    <button id="write01">プログラム実行</button>
+    <button id="write02">プログラム停止</button>
+    <br>
+    <br>
+    実行結果
+    <br>
+    <textarea name="Output" cols="80" rows="10" id="messages" style="overflow:scroll;"></textarea>
+    <br>
+    <button id="write03">画面クリア</button>
+    <br>
+    <br>
+    <script type="module">
+    	import Serial from './Serial.js'
+    
+		const button00 = document.getElementById("connect");
+		button00.addEventListener("click", function () {onStartButtonClick();}, false);
+		
+		const button01 = document.getElementById("write01");
+		button01.addEventListener("click", function () {execProg();}, false);
+		
+		const button02 = document.getElementById("write02");
+		button02.addEventListener("click", function () {dispFlag = false;ctrlcFlag = true;serial.send(CTRL_C);}, false);
+		
+		const button03 = document.getElementById("write03");
+		button03.addEventListener("click", function () {setText('');}, false);
+
+		const button04 = document.getElementById("sample01");
+		button04.addEventListener("click", function () {setSample01();}, false);
+
+		const button05 = document.getElementById("sample02");
+		button05.addEventListener("click", function () {setSample02();}, false);
+		
+		const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
+
+		const serial = new Serial();
+
+		const CTRL_C = "\x03";
+		const CTRL_D = "\x04";
+		const LINE_END = "\x0D";
+		
+		let port;
+		let reader;
+		let writer;
+		let connectionStatus = false;
+		
+		let dispFlag = true;
+		let ctrlcFlag = false;
+		let progTransfer = false;
+		let progCharCount = 0;
+		let progLength = 0;
+		
+		//const [received, setReceived] = React.useState({ time: new Date(), value: '' })
+		
+		async function onStartButtonClick() 
+		{
+			if(connectionStatus == false)
+			{
+				if (!serial.supported()) 
+				{
+      				console.error(`Serial not supported`)
+      				return
+    			}
+    		
+    			serial.onSuccess = () => 
+    			{
+      				connectionStatus = true;
+      				addText("ポートを接続しました\n");
+					button00.innerHTML = "切断";
+    			}
+    		
+    			serial.onFail = () => 
+    			{
+      				connectionStatus = false;
+      				addText("ポートが切断されました!\n");
+      				button00.innerHTML = "接続";
+    			}
+    		
+    			serial.onReceive = (value) => 
+    			{
+    				if(dispFlag)
+    				{
+    					addText(value);
+    				}
+    				else
+    				{
+    					if(ctrlcFlag)
+    					{
+				    		if(value.slice(-4, -1) == ">>>") 
+    						{
+    				  			console.log("Prog Stop");
+    				  			dispFlag = true;
+    				  			ctrlcFlag = false;
+    						}
+    					}
+    					
+    					if(progTransfer)
+    					{
+    						progCharCount += value.length;
+    						//addText(" :"+progCharCount);
+    						addText("..");
+    						if( progCharCount >= progLength)
+    						{
+    							addText("\nプログラムの実行を開始します\n");
+    							//console.log("exec end");
+    							progTransfer = false;
+    				  			dispFlag = true;
+    						}
+       					}
+					}
+		    		console.log(value);
+		    				
+    			}
+    		
+    			serial.requestPort();
+    		}
+    		else
+    		{
+    			connectionStatus = false;
+    			serial.close();
+    			console.log("disconnected");
+				addText("ポートを切断しました\n");
+				button00.innerHTML = "接続";
+    		}
+		}
+
+		async function execProg() 
+		{
+			var textAreaField = document.getElementById('prog');
+			const code = textAreaField.value;
+			//const encoder = new TextEncoder();
+			if(serial.open)
+			{
+				console.log("プログラム書き込み: \n" + code);
+				let lines = code.split("\\").join("\\\\").split("\n").join("\\n");
+				// remove comments by """
+        		lines = lines.split('"""');
+        		for (let i = 0; i < lines.length; i++) {
+            		lines.splice(i + 1, 1);
+        		}
+        		lines = lines.join("");
+        		console.log(lines);
+        		
+				dispFlag = false;
+				ctrlcFlag = true;
+				serial.send(CTRL_C);
+				await sleep(500);
+				
+				//console.log("exec start");
+   				
+   				lines = 'exec("""' + lines + '""")' + LINE_END;
+   				
+;   			progLength = lines.length
+   				//addText("文字数="+progLength+"\n");
+   				addText("プログラムを転送しています");
+   				dispFlag = false;
+   				progTransfer = true;
+   				progCharCount = 0;
+				serial.send(lines);
+			}
+			else
+			{
+				console.log("ポート未接続");
+			}
+			//serial.send('1');
+		}
+
+		async function addText(text) 
+		{
+			var textarea = document.getElementById("messages");
+			textarea.value += text;
+			textarea.scrollTop = textarea.scrollHeight;
+		}
+
+		async function setText(text) 
+		{
+			var textarea = document.getElementById("messages");
+			textarea.value = text;
+			textarea.scrollTop = textarea.scrollHeight;
+		}
+
+		async function setSample01()
+		{
+			var textAreaField = document.getElementById('prog');
+			var code = "from machine import Pin\n";
+			code += "import utime\n";
+			code += "led = Pin(25, Pin.OUT)\n";
+			code += "\n";
+			code += "while True:\n";
+			code += "  led.value(1)\n";
+			code += "  utime.sleep(0.5)\n";
+			code += "  led.value(0)\n";
+			code += "  utime.sleep(0.5)\n";
+			textAreaField.value = code;
+		}
+		
+		async function setSample02()
+		{
+			var textAreaField = document.getElementById('prog');
+			var code = "from machine import Pin\n";
+			code += "import utime\n";
+			code += "led1 = Pin(17, Pin.OUT)\n";
+			code += "led2 = Pin(28, Pin.OUT) \n";
+			code += "sw = Pin(15, Pin.IN, Pin.PULL_UP)\n";
+			code += "while True:\n";
+			code += "  val = sw.value()\n";
+			code += "  print(sw.value())\n";
+			code += "  led1.value(val)\n";
+			code += "  led2.value(val)\n";
+			code += "  utime.sleep(0.5)\n";
+			textAreaField.value = code;
+		}
+	</script>
+  </body>
+</html>
