@@ -217,9 +217,9 @@
 			var textAreaField = document.getElementById('prog');
 			var code = "from machine import Pin\n";
 			code += "import utime\n";
-			code += "led1 = Pin(17, Pin.OUT)\n";
-			code += "led2 = Pin(28, Pin.OUT) \n";
-			code += "sw = Pin(15, Pin.IN, Pin.PULL_UP)\n";
+			code += "led1 = Pin(18, Pin.OUT)\n";
+			code += "led2 = Pin(20, Pin.OUT) \n";
+			code += "sw = Pin(22, Pin.IN, Pin.PULL_UP)\n";
 			code += "while True:\n";
 			code += "  val = sw.value()\n";
 			code += "  print(sw.value())\n";
