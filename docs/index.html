@@ -202,6 +202,7 @@
 			var textAreaField = document.getElementById('prog');
 			var code = "from machine import Pin\n";
 			code += "import utime\n";
+			code += "\n";
 			code += "led = Pin(25, Pin.OUT)\n";
 			code += "\n";
 			code += "while True:\n";
@@ -217,13 +218,16 @@
 			var textAreaField = document.getElementById('prog');
 			var code = "from machine import Pin\n";
 			code += "import utime\n";
+			code += "\n";
 			code += "led1 = Pin(18, Pin.OUT)\n";
 			code += "led2 = Pin(19, Pin.OUT)\n";
 			code += "led3 = Pin(20, Pin.OUT) \n";
 			code += "led4 = Pin(21, Pin.OUT) \n";
-			code += "sw = Pin(22, Pin.IN, Pin.PULL_UP)\n\n";
+			code += "sw = Pin(22, Pin.IN, Pin.PULL_UP)\n";
+			code += "\n";
 			code += "led2.value(0)\n";
-			code += "led4.value(1)\n\n";
+			code += "led4.value(1)\n";
+			code += "\n";
 			code += "while True:\n";
 			code += "  val = sw.value()\n";
 			code += "  print(sw.value())\n";
