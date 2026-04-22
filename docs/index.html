@@ -12,6 +12,8 @@
     <br>
     <button id="sample01">LED TEST</button>
     <button id="sample02">SW TEST</button>
+    <button id="sample03">AD TEST</button>
+    <button id="progClear">プログラムエリアクリア</button>
     <br>
     プログラムリスト
     <br>
@@ -49,6 +51,12 @@
 		const button05 = document.getElementById("sample02");
 		button05.addEventListener("click", function () {setSample02();}, false);
 		
+		const button06 = document.getElementById("sample03");
+		button06.addEventListener("click", function () {setSample03();}, false);
+		
+		const button07 = document.getElementById("progClear");
+		button07.addEventListener("click", function () {progClear();}, false);
+
 		const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
 
 		const serial = new Serial();
@@ -234,6 +242,23 @@
 			code += "  led1.value(val)\n";
 			code += "  led3.value(val)\n";
 			code += "  utime.sleep(0.5)\n";
+			textAreaField.value = code;
+		}
+		
+		async function setSample03()
+		{
+		    var textAreaField = document.getElementById('prog');
+			var code = "from machine import Pin\n";
+			code += "import utime\n";
+			code += "\n";
+			
+			textAreaField.value = code;
+		}
+
+		async function progClear()
+		{
+		    var textAreaField = document.getElementById('prog');
+			var code = "";
 			textAreaField.value = code;
 		}
 	</script>
