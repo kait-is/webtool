@@ -239,8 +239,8 @@
 			code += "while True:\n";
 			code += "  swVal = sw.value()\n";
 			code += "  print(swVal)\n";
-			code += "  led1.value(val)\n";
-			code += "  led3.value(val)\n";
+			code += "  led1.value(swVal)\n";
+			code += "  led3.value(swVal)\n";
 			code += "  utime.sleep(0.5)\n";
 			textAreaField.value = code;
 		}
@@ -253,6 +253,7 @@
 			code += "\n";
 			code += "led1 = Pin(18, Pin.OUT)\n";
 			code += "sw = Pin(22, Pin.IN, Pin.PULL_UP)\n";
+			code += "adc = ADC(26)\n";
 			code += "\n";
 			code += "while True:\n";
 			code += "  swVal = sw.value()\n";
