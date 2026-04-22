@@ -237,8 +237,8 @@
 			code += "led4.value(1)\n";
 			code += "\n";
 			code += "while True:\n";
-			code += "  val = sw.value()\n";
-			code += "  print(sw.value())\n";
+			code += "  swVal = sw.value()\n";
+			code += "  print(swVal)\n";
 			code += "  led1.value(val)\n";
 			code += "  led3.value(val)\n";
 			code += "  utime.sleep(0.5)\n";
@@ -248,10 +248,17 @@
 		async function setSample03()
 		{
 		    var textAreaField = document.getElementById('prog');
-			var code = "from machine import Pin\n";
+			var code = "from machine import ADC, Pin\n";
 			code += "import utime\n";
 			code += "\n";
-			
+			code += "led1 = Pin(18, Pin.OUT)\n";
+			code += "sw = Pin(22, Pin.IN, Pin.PULL_UP)\n";
+			code += "\n";
+			code += "while True:\n";
+			code += "  swVal = sw.value()\n";
+			code += "  adVal = adc.read_u16()\n";
+			code += "  print(adVal)\n";
+			code += "  utime.sleep(0.5)\n";
 			textAreaField.value = code;
 		}
 
