@@ -1,10 +1,52 @@
-
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>マイコンプログラミング</title>
+    <style>
+      /* 行番号用のスタイル */
+      .editor-container {
+        display: flex;
+        width: 80ch;
+        border: 1px solid #ccc;
+        background-color: #fff;
+      }
+      
+      .line-numbers, #prog {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        padding: 8px 0;
+        box-sizing: border-box;
+      }
+
+      .line-numbers {
+        width: 45px;
+        background-color: #f0f0f0;
+        color: #888;
+        text-align: right;
+        padding-right: 8px;
+        user-select: none;
+        overflow: hidden;
+        white-space: pre;
+      }
+
+      #prog {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding-left: 8px;
+        resize: none;
+        overflow-y: scroll;
+      }
+
+      /* ファイル操作ボタン用の簡易スタイル */
+      .file-controls {
+        margin-top: 5px;
+        margin-bottom: 10px;
+      }
+    </style>
   </head>
 
   <body>
@@ -17,8 +59,16 @@
     <br>
     プログラムリスト
     <br>
-    <textarea name="Prog" cols="80" rows="15" id="prog" style="overflow:scroll;"></textarea>
-    <br>
+    <div class="editor-container">
+      <div id="lineNumbers" class="line-numbers">1</div>
+      <textarea name="Prog" rows="15" id="prog"></textarea>
+    </div>
+    
+    <div class="file-controls">
+      <button id="saveFile">ファイルを保存</button>
+      <input type="file" id="loadFile" accept=".py,.txt" style="display:none;">
+      <button id="loadFileBtn">ファイルを開く</button>
+    </div>
     <button id="write01">プログラム実行</button>
     <button id="write02">プログラム停止</button>
     <br>
@@ -46,16 +96,27 @@
 		button03.addEventListener("click", function () {setText('');}, false);
 
 		const button04 = document.getElementById("sample01");
-		button04.addEventListener("click", function () {setSample01();}, false);
+		button04.addEventListener("click", function () {setSample01(); updateLineNumbers();}, false);
 
 		const button05 = document.getElementById("sample02");
-		button05.addEventListener("click", function () {setSample02();}, false);
+		button05.addEventListener("click", function () {setSample02(); updateLineNumbers();}, false);
 		
 		const button06 = document.getElementById("sample03");
-		button06.addEventListener("click", function () {setSample03();}, false);
+		button06.addEventListener("click", function () {setSample03(); updateLineNumbers();}, false);
 		
 		const button07 = document.getElementById("progClear");
-		button07.addEventListener("click", function () {progClear();}, false);
+		button07.addEventListener("click", function () {progClear(); updateLineNumbers();}, false);
+
+		// ーーー 新しいボタンのイベントリスナー ーーー
+		const saveFileBtn = document.getElementById("saveFile");
+		saveFileBtn.addEventListener("click", function () {saveProgramToFile();}, false);
+
+		const loadFileBtn = document.getElementById("loadFileBtn");
+		const loadFileInput = document.getElementById("loadFile");
+		// 見た目を綺麗にするため、隠したinput[type=file]をボタン経由でクリックさせる
+		loadFileBtn.addEventListener("click", function () {loadFileInput.click();}, false);
+		loadFileInput.addEventListener("change", function (e) {loadProgramFromFile(e);}, false);
+		// ーーーーーーーーーーーーーーーーーーーーーー
 
 		const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
 
@@ -76,8 +137,107 @@
 		let progCharCount = 0;
 		let progLength = 0;
 		
-		//const [received, setReceived] = React.useState({ time: new Date(), value: '' })
+		// 行番号表示のためのロジック
+		const textarea = document.getElementById("prog");
+		const lineNumbersEle = document.getElementById("lineNumbers");
+
+		function updateLineNumbers() 
+		{
+			const lines = textarea.value.split('\n');
+			const lineCount = lines.length;
+			let lineNumbersStr = '';
+			for (let i = 1; i <= lineCount; i++) {
+				lineNumbersStr += i + '\n';
+			}
+			lineNumbersEle.textContent = lineNumbersStr;
+		}
+
+		textarea.addEventListener('input', updateLineNumbers);
+		textarea.addEventListener('scroll', () => {
+			lineNumbersEle.scrollTop = textarea.scrollTop;
+		});
+
+		// ーーー ファイルの保存と読み込みの関数 ーーー
+		// 1. 保存機能 (PCへダウンロード)
+		// window.showSaveFilePicker が存在するかどうかでブラウザを判定するため、async関数にします
+		async function saveProgramToFile() 
+		{
+		    const code = textarea.value;
+		    if (!code) {
+		        alert("保存するプログラムがありません。");
+		        return;
+		    }
 		
+		    // ─── 判定：File System Access API (アプローチ2) に対応しているか ───
+		    if ('showSaveFilePicker' in window) {
+		        console.log("アプローチ2 (File System Access API) で保存します");
+		        try {
+		            const options = {
+		                suggestedName: 'main.py',
+		                types: [{
+		                    description: 'Python Files',
+		                    accept: { 'text/plain': ['.py'] },
+		                }, {
+		                    description: 'Text Files',
+		                    accept: { 'text/plain': ['.txt'] },
+		                }],
+		            };
+		            
+		            // 「名前を付けて保存」ダイアログを表示
+		            const handle = await window.showSaveFilePicker(options);
+		            const writable = await handle.createWritable();
+		            await writable.write(code);
+		            await writable.close();
+		            return; // 保存に成功したらここで処理を終了
+		            
+		        } catch (err) {
+		            // ユーザーが保存ダイアログをキャンセルした場合は処理を抜ける
+		            if (err.name === 'AbortError') {
+		                console.log('保存がキャンセルされました。');
+		                return;
+		            }
+		            // それ以外の予期せぬエラーが起きた場合は、安全のためアプローチ1へフォールバック
+		            console.warn('APIエラーのため、通常のダウンロードに切り替えます:', err);
+		        }
+		    }
+		
+		    // ─── フォールバック：未対応ブラウザ（Safariやスマホ等）用のアプローチ1 ───
+		    console.log("アプローチ1 (Blobダウンロード方式) で保存します");
+		    
+		    let fileName = prompt("保存するファイル名を入力してください:", "main.py");
+		    if (fileName === null) return; // キャンセル時
+		    if (fileName.trim() === "") fileName = "main.py";
+		
+		    const blob = new Blob([code], { type: "text/plain" });
+		    const link = document.createElement("a");
+		    link.href = URL.createObjectURL(blob);
+		    link.download = fileName;
+		    
+		    document.body.appendChild(link);
+		    link.click();
+		    document.body.removeChild(link);
+		    URL.revokeObjectURL(link.href);
+		}
+
+		// 2. 読み込み機能 (PCのファイルを開く)
+		function loadProgramFromFile(event) 
+		{
+			const file = event.target.files[0];
+			if (!file) return;
+
+			const reader = new FileReader();
+			reader.onload = function (e) {
+				// テキストエリアに読み込んだ内容をセット
+				textarea.value = e.target.result;
+				// 行番号を再計算
+				updateLineNumbers();
+				// 次回同じファイルを選んでもイベントが発生するようにリセット
+				loadFileInput.value = "";
+			};
+			reader.readAsText(file);
+		}
+		// ーーーーーーーーーーーーーーーーーーーーーー
+
 		async function onStartButtonClick() 
 		{
 			if(connectionStatus == false)
@@ -123,12 +283,10 @@
     					if(progTransfer)
     					{
     						progCharCount += value.length;
-    						//addText(" :"+progCharCount);
     						addText("..");
     						if( progCharCount >= progLength)
     						{
     							addText("\nプログラムの実行を開始します\n");
-    							//console.log("exec end");
     							progTransfer = false;
     				  			dispFlag = true;
     						}
@@ -154,12 +312,10 @@
 		{
 			var textAreaField = document.getElementById('prog');
 			const code = textAreaField.value;
-			//const encoder = new TextEncoder();
 			if(serial.open)
 			{
 				console.log("プログラム書き込み: \n" + code);
 				let lines = code.split("\\").join("\\\\").split("\n").join("\\n");
-				// remove comments by """
         		lines = lines.split('"""');
         		for (let i = 0; i < lines.length; i++) {
             		lines.splice(i + 1, 1);
@@ -172,12 +328,9 @@
 				serial.send(CTRL_C);
 				await sleep(500);
 				
-				//console.log("exec start");
-   				
    				lines = 'exec("""' + lines + '""")' + LINE_END;
    				
-;   			progLength = lines.length
-   				//addText("文字数="+progLength+"\n");
+   				progLength = lines.length
    				addText("プログラムを転送しています");
    				dispFlag = false;
    				progTransfer = true;
@@ -188,7 +341,6 @@
 			{
 				console.log("ポート未接続");
 			}
-			//serial.send('1');
 		}
 
 		async function addText(text) 
@@ -217,7 +369,7 @@
 			code += "  led.value(1)\n";
 			code += "  utime.sleep(0.5)\n";
 			code += "  led.value(0)\n";
-			code += "  utime.sleep(0.5)\n";
+			code += "  utime.sleep(0.5)";
 			textAreaField.value = code;
 		}
 		
@@ -241,7 +393,7 @@
 			code += "  print(swVal)\n";
 			code += "  led1.value(swVal)\n";
 			code += "  led3.value(swVal)\n";
-			code += "  utime.sleep(0.5)\n";
+			code += "  utime.sleep(0.5)";
 			textAreaField.value = code;
 		}
 		
@@ -259,7 +411,7 @@
 			code += "  swVal = sw.value()\n";
 			code += "  adVal = adc.read_u16()\n";
 			code += "  print(adVal)\n";
-			code += "  utime.sleep(0.5)\n";
+			code += "  utime.sleep(0.5)";
 			textAreaField.value = code;
 		}
 
