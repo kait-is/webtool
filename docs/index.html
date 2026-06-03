@@ -107,7 +107,7 @@
 		const button07 = document.getElementById("progClear");
 		button07.addEventListener("click", function () {progClear(); updateLineNumbers();}, false);
 
-		// ーーー 新しいボタンのイベントリスナー ーーー
+		// ーーー ファイルの保存/読み込み ーーー
 		const saveFileBtn = document.getElementById("saveFile");
 		saveFileBtn.addEventListener("click", function () {saveProgramToFile();}, false);
 
@@ -417,9 +417,18 @@
 
 		async function progClear()
 		{
-		    var textAreaField = document.getElementById('prog');
-			var code = "";
-			textAreaField.value = code;
+		    // 確認ダイアログを表示（「OK」なら true、「キャンセル」なら false が返る）
+		    const result = confirm("プログラムエリアをクリアしてもよろしいですか？");
+		    
+		    if (result) {
+		        // OKが押された場合のみクリアを実行
+		        var textAreaField = document.getElementById('prog');
+		        var code = "";
+		        textAreaField.value = code;
+		    } else {
+		        // キャンセルされた場合は何もしない（関数を抜ける）
+		        console.log("クリアがキャンセルされました");
+		    }
 		}
 	</script>
   </body>
